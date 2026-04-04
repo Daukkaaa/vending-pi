@@ -1,0 +1,16 @@
+[Unit]
+Description=Chromium Kiosk Mode for Vending Machine
+After=graphical.target kiosk-ui.service
+Wants=kiosk-ui.service
+
+[Service]
+Type=simple
+User=rpi
+Environment=DISPLAY=:0
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --no-first-run --disable-translate --overscroll-history-navigation=0 --disable-pinch --incognito http://localhost:5173
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=graphical.target

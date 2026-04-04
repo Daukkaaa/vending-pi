@@ -1,0 +1,14 @@
+[Unit]
+Description=Vending Machine Kiosk UI (HTTP server)
+After=network.target
+
+[Service]
+Type=simple
+User=rpi
+WorkingDirectory=/home/rpi/vending-machine/kiosk-ui/dist
+ExecStart=/usr/bin/python3 -m http.server 5173 --bind 0.0.0.0
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

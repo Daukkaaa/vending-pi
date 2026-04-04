@@ -1,0 +1,16 @@
+[Unit]
+Description=Vending Machine Pi Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rpi
+WorkingDirectory=/home/rpi/vending-machine/pi-service
+ExecStart=/home/rpi/vending-machine/pi-service/venv/bin/python main.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
