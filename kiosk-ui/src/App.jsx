@@ -8,6 +8,7 @@ import ErrorScreen from './screens/ErrorScreen';
 import IdleScreen from './screens/IdleScreen';
 import Header from './components/Header';
 import { getInventory } from './api';
+import { getLocalCatalog } from './catalog';
 import { IDLE_TIMEOUT, MACHINE_ID } from './config';
 
 const SCREENS = {
@@ -53,6 +54,23 @@ export default function App() {
   }, [resetIdleTimer]);
 
   const loadInventory = useCallback(async () => {
+     if (!MACHINE_ID) {
+       setError('Machine ID не настроен');
+       setScreen(SCREENS.ERROR);
+       return;
+     }
+@@
+     } finally {
+       setLoading(false);
+     }
+   }, []);
++
++  useEffect(() => {
++    const interval = setInterval(() => {
++      loadInventory();
++    }, 3000);
++    return () => clearInterval(interval);
++  }, [loadInventory]);
     if (!MACHINE_ID) {
       setError('Machine ID не настроен');
       setScreen(SCREENS.ERROR);
@@ -60,7 +78,12 @@ export default function App() {
     }
     try {
       setLoading(true);
-      const items = await getInventory();
+      let items = [];
+      try {
+        items = await getLocalCatalog();
+      } catch {
+        items = await getInventory();
+      }
       setInventory(items.filter(i => i.quantity > 0));
     } catch (e) {
       setError('Не удалось загрузить каталог');

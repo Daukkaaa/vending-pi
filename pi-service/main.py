@@ -19,6 +19,7 @@ import os
 from config import MACHINE_ID, SERVO_PIN, DOOR_SENSOR_PIN, DEFAULT_LOCK_DURATION
 from gpio_controller import GPIOController
 from ws_client import WSClient
+from catalog_cache import write_catalog
 
 # Logging
 logging.basicConfig(
@@ -64,7 +65,8 @@ async def handle_command(data: dict):
     elif cmd_type == "update_catalog":
         products = data.get("products", [])
         logger.info(f"📦 Catalog update: {len(products)} products")
-        # In the future, could cache locally for offline display
+        write_catalog(products)
+        logger.info("✅ Catalog cache updated for kiosk UI")
 
     elif cmd_type == "door_closed_ack":
         logger.info(f"Server acknowledged door close for order {data.get('order_id')}")

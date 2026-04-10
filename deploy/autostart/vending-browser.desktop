@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Vending Browser
+Exec=/home/rpi/bin/start-vending-browser.sh
+X-GNOME-Autostart-enabled=true

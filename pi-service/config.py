@@ -10,6 +10,7 @@ SERVER_URL = os.getenv("SERVER_URL", "ws://localhost:8000")
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 MACHINE_ID = os.getenv("MACHINE_ID", "")
 MACHINE_TOKEN = os.getenv("MACHINE_TOKEN", "")
+CATALOG_PATH = os.getenv("CATALOG_PATH", "/home/rpi/vending-machine/kiosk-ui/public/catalog.json")
 
 # GPIO pins (BCM numbering)
 SERVO_PIN = int(os.getenv("SERVO_PIN", "17"))        # SG90 servo (test lock)
