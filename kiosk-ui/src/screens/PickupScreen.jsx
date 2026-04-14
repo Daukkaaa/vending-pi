@@ -1,36 +1,48 @@
-/* Pickup — blocks UI — Marketa, 800x480 */
-import { useEffect, useState } from 'react';
-import { PICKUP_SCREEN_TIMEOUT } from '../config';
 import { t } from '../i18n';
 
-export default function PickupScreen({ lang, order, onDone }) {
-  const [cd, setCd] = useState(Math.floor(PICKUP_SCREEN_TIMEOUT / 1000));
-  useEffect(() => {
-    const tm = setInterval(() => {
-      setCd(p => { if (p <= 1) { clearInterval(tm); onDone(); return 0; } return p - 1; });
-    }, 1000);
-    return () => clearInterval(tm);
-  }, [onDone]);
+export default function PickupScreen({ lang, order, onDone, doorFlow, doorClosed, secondsLeft }) {
+  const isWaitClose = doorFlow === 'wait_close';
+  const title = isWaitClose ? 'Закройте дверь' : 'Можете забрать товар';
+  const subtitle = isWaitClose
+    ? 'Пожалуйста, закройте дверь холодильника, чтобы продолжить'
+    : doorClosed
+      ? 'Откройте дверь и заберите товар'
+      : 'Заберите товар и закройте дверь';
 
   return (
-    <div className="fade-in" style={{
+    <div className="pickup-screen-root fade-in" style={{
       height: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #059669 0%, #16a34a 100%)',
-      color: '#fff', textAlign: 'center', padding: 24,
+      background: isWaitClose
+        ? 'linear-gradient(135deg, #b91c1c 0%, #ef4444 100%)'
+        : 'linear-gradient(135deg, #059669 0%, #16a34a 100%)',
+      color: '#fff', textAlign: 'center', padding: 32,
     }}>
-      <img src="/logo.png" alt="" style={{ width: 44, height: 44, borderRadius: 8, marginBottom: 10, objectFit: 'contain' }} />
-      <div style={{ fontSize: 52, marginBottom: 8 }} className="pulse">✅</div>
-      <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{t(lang, 'paymentSuccess')}</div>
-      <div style={{ fontSize: 15, opacity: 0.9, marginBottom: 14 }}>{t(lang, 'pickupItem')}</div>
+      <div style={{ fontSize: 96, marginBottom: 18 }} className="pulse">{isWaitClose ? '🚪' : '✅'}</div>
+      <div style={{ fontSize: 48, fontWeight: 800, marginBottom: 18, lineHeight: 1.1 }}>{title}</div>
+      <div style={{ fontSize: 28, opacity: 0.98, marginBottom: 24, maxWidth: 720, lineHeight: 1.3 }}>{subtitle}</div>
+
       {order?.order_number && (
-        <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 10, padding: '6px 18px', fontSize: 13, fontWeight: 600 }}>
+        <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 18, padding: '14px 28px', fontSize: 22, fontWeight: 700, marginBottom: 18 }}>
           {t(lang, 'order')}: {order.order_number}
         </div>
       )}
-      <div style={{ marginTop: 20, fontSize: 12, opacity: 0.5 }}>
-        {t(lang, 'unlockIn')} {cd} {t(lang, 'sec')}
+
+      <div style={{ fontSize: 26, fontWeight: 700, marginBottom: 10 }}>
+        Дверь: {doorClosed ? 'закрыта' : 'открыта'}
       </div>
+
+      {!isWaitClose && (
+        <div style={{ fontSize: 24, opacity: 0.95 }}>
+          Время на получение: {secondsLeft} сек
+        </div>
+      )}
+
+      {isWaitClose && (
+        <div style={{ marginTop: 16, fontSize: 24, fontWeight: 700, background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.35)', borderRadius: 16, padding: '16px 24px' }}>
+          Новая покупка будет доступна только после закрытия двери
+        </div>
+      )}
     </div>
   );
 }

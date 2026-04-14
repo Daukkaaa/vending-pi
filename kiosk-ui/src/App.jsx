@@ -21,6 +21,12 @@ const SCREENS = {
   ERROR: 'error',
 };
 
+const DOOR_STATES = {
+  IDLE: 'idle',
+  READY_TO_TAKE: 'ready_to_take',
+  WAIT_CLOSE: 'wait_close',
+};
+
 export default function App() {
   const [screen, setScreen] = useState(SCREENS.IDLE);
   const [lang, setLang] = useState('ru');
@@ -31,7 +37,11 @@ export default function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dispensing, setDispensing] = useState(false);
+  const [doorFlow, setDoorFlow] = useState(DOOR_STATES.IDLE);
+  const [doorClosed, setDoorClosed] = useState(true);
+  const [pickupSecondsLeft, setPickupSecondsLeft] = useState(30);
   const idleTimer = useRef(null);
+  const pickupTimer = useRef(null);
 
   const resetIdleTimer = useCallback(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
@@ -54,23 +64,6 @@ export default function App() {
   }, [resetIdleTimer]);
 
   const loadInventory = useCallback(async () => {
-     if (!MACHINE_ID) {
-       setError('Machine ID не настроен');
-       setScreen(SCREENS.ERROR);
-       return;
-     }
-@@
-     } finally {
-       setLoading(false);
-     }
-   }, []);
-+
-+  useEffect(() => {
-+    const interval = setInterval(() => {
-+      loadInventory();
-+    }, 3000);
-+    return () => clearInterval(interval);
-+  }, [loadInventory]);
     if (!MACHINE_ID) {
       setError('Machine ID не настроен');
       setScreen(SCREENS.ERROR);
@@ -93,24 +86,96 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    loadInventory();
+    const interval = setInterval(() => {
+      loadInventory();
+      try {
+        const state = JSON.parse(localStorage.getItem('door-state') || '{}');
+        setDoorClosed(state.doorClosed ?? true);
+        if (state.dispensing) {
+          setDispensing(true);
+          setDoorFlow(state.doorFlow || DOOR_STATES.READY_TO_TAKE);
+          setPickupSecondsLeft(state.pickupSecondsLeft ?? 30);
+          setOrderData(state.orderData || null);
+          setScreen(SCREENS.PICKUP);
+        }
+      } catch {}
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loadInventory]);
+
+  useEffect(() => {
+    const snapshot = {
+      dispensing,
+      doorFlow,
+      doorClosed,
+      pickupSecondsLeft,
+      orderData,
+    };
+    localStorage.setItem('door-state', JSON.stringify(snapshot));
+  }, [dispensing, doorFlow, doorClosed, pickupSecondsLeft, orderData]);
+
+  useEffect(() => {
+    if (!dispensing) {
+      if (pickupTimer.current) clearInterval(pickupTimer.current);
+      return;
+    }
+    if (pickupTimer.current) clearInterval(pickupTimer.current);
+    pickupTimer.current = setInterval(() => {
+      setPickupSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(pickupTimer.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(pickupTimer.current);
+  }, [dispensing]);
+
+  useEffect(() => {
+    if (!dispensing) return;
+    if (pickupSecondsLeft <= 0 && !doorClosed) {
+      setDoorFlow(DOOR_STATES.WAIT_CLOSE);
+    }
+  }, [pickupSecondsLeft, dispensing, doorClosed]);
+
+  useEffect(() => {
+    if (!dispensing) return;
+    if (doorClosed) {
+      if (pickupSecondsLeft > 0) {
+        setDoorFlow(DOOR_STATES.READY_TO_TAKE);
+      } else {
+        setDispensing(false);
+        setDoorFlow(DOOR_STATES.IDLE);
+        setOrderData(null);
+        setCart([]);
+        setScreen(SCREENS.CATEGORIES);
+        loadInventory();
+      }
+    }
+  }, [doorClosed, pickupSecondsLeft, dispensing, loadInventory]);
+
   const handleSelectLang = useCallback((code) => {
+    if (dispensing && !doorClosed) return;
     setLang(code);
     setCart([]);
     setCategory('');
     setScreen(SCREENS.CATEGORIES);
     loadInventory();
     resetIdleTimer();
-  }, [loadInventory, resetIdleTimer]);
+  }, [loadInventory, resetIdleTimer, dispensing, doorClosed]);
 
   const goHome = useCallback(() => {
-    if (dispensing) return;
+    if (dispensing || !doorClosed) return;
     setCart([]);
     setCategory('');
     setScreen(SCREENS.IDLE);
-  }, [dispensing]);
+  }, [dispensing, doorClosed]);
 
   const addToCart = useCallback((item) => {
-    if (dispensing) return;
+    if (dispensing || !doorClosed) return;
     setCart(prev => {
       const existing = prev.find(c => c.id === item.id);
       if (existing) {
@@ -120,10 +185,10 @@ export default function App() {
       return [...prev, { ...item, qty: 1 }];
     });
     resetIdleTimer();
-  }, [resetIdleTimer, dispensing]);
+  }, [resetIdleTimer, dispensing, doorClosed]);
 
   const removeFromCart = useCallback((itemId) => {
-    if (dispensing) return;
+    if (dispensing || !doorClosed) return;
     setCart(prev => {
       const existing = prev.find(c => c.id === itemId);
       if (existing && existing.qty > 1) {
@@ -132,7 +197,7 @@ export default function App() {
       return prev.filter(c => c.id !== itemId);
     });
     resetIdleTimer();
-  }, [resetIdleTimer, dispensing]);
+  }, [resetIdleTimer, dispensing, doorClosed]);
 
   const cartTotal = cart.reduce((sum, c) => sum + c.product_price * c.qty, 0);
   const cartCount = cart.reduce((sum, c) => sum + c.qty, 0);
@@ -140,19 +205,24 @@ export default function App() {
 
   const handlePaymentSuccess = useCallback((order) => {
     setOrderData(order);
+    setPickupSecondsLeft(30);
+    setDoorFlow(DOOR_STATES.READY_TO_TAKE);
     setDispensing(true);
     setScreen(SCREENS.PICKUP);
   }, []);
 
   const handleReset = useCallback(() => {
+    if (!doorClosed) return;
     setCart([]);
     setOrderData(null);
     setError('');
     setDispensing(false);
+    setDoorFlow(DOOR_STATES.IDLE);
+    setPickupSecondsLeft(30);
     setScreen(SCREENS.CATEGORIES);
     loadInventory();
     resetIdleTimer();
-  }, [loadInventory, resetIdleTimer]);
+  }, [loadInventory, resetIdleTimer, doorClosed]);
 
   const handleError = useCallback((msg) => {
     setError(msg);
@@ -160,7 +230,7 @@ export default function App() {
   }, []);
 
   if (dispensing && screen !== SCREENS.PICKUP) {
-    return <PickupScreen lang={lang} order={orderData} onDone={handleReset} />;
+    return <PickupScreen lang={lang} order={orderData} onDone={handleReset} doorFlow={doorFlow} doorClosed={doorClosed} secondsLeft={pickupSecondsLeft} />;
   }
 
   if (screen === SCREENS.IDLE) {
@@ -168,10 +238,9 @@ export default function App() {
   }
 
   if (screen === SCREENS.PICKUP) {
-    return <PickupScreen lang={lang} order={orderData} onDone={handleReset} />;
+    return <PickupScreen lang={lang} order={orderData} onDone={handleReset} doorFlow={doorFlow} doorClosed={doorClosed} secondsLeft={pickupSecondsLeft} />;
   }
 
-  // All other screens get the persistent header
   const headerProps = { lang, cartCount, cartTotal, onHome: goHome, onGoCart: () => setScreen(SCREENS.CART) };
 
   switch (screen) {

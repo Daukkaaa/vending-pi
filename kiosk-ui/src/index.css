@@ -19,7 +19,12 @@ body {
   -webkit-user-select: none;
   user-select: none;
   cursor: default;
-  font-size: 14px;
+  font-size: 18px;
+}
+
+button {
+  min-height: 56px;
+  font-size: 20px;
 }
 
 ::-webkit-scrollbar { width: 4px; }

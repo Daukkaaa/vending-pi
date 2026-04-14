@@ -34,13 +34,14 @@ logger = logging.getLogger("pi-service")
 
 # State
 current_order_id = None
+pickup_deadline = None
 gpio = GPIOController(lock_pin=SERVO_PIN, door_sensor_pin=DOOR_SENSOR_PIN)
 ws: WSClient = None
 
 
 async def handle_command(data: dict):
     """Process commands from the backend server."""
-    global current_order_id
+    global current_order_id, pickup_deadline
 
     cmd_type = data.get("type")
 
@@ -51,8 +52,9 @@ async def handle_command(data: dict):
 
         logger.info(f"🔓 OPEN_LOCK: order={order_id}, slot={slot_number}, duration={duration}s")
         current_order_id = order_id
+        pickup_deadline = asyncio.get_event_loop().time() + duration
+        gpio.set_led_mode('green')
 
-        # Open the lock
         success = await gpio.open_lock(duration)
 
         if success:
@@ -77,20 +79,26 @@ async def handle_command(data: dict):
 
 def on_door_close():
     """Called by GPIO when door sensor detects door closed."""
-    global current_order_id
+    global current_order_id, pickup_deadline
+    gpio.close_lock()
+    gpio.set_led_mode('white')
     if current_order_id:
         logger.info(f"🚪 Door closed → locking + notifying server (order: {current_order_id})")
-        gpio.close_lock()
-        # Schedule async send
         asyncio.get_event_loop().create_task(ws.send_door_closed(current_order_id))
         current_order_id = None
+        pickup_deadline = None
 
 
 def on_door_open():
     """Called by GPIO when door sensor detects door opened."""
+    global pickup_deadline
     if current_order_id:
         logger.info(f"🚪 Door opened (order: {current_order_id})")
+        gpio.set_led_mode('green')
         asyncio.get_event_loop().create_task(ws.send_door_opened(current_order_id))
+
+    if pickup_deadline and asyncio.get_event_loop().time() > pickup_deadline:
+        gpio.set_led_mode('red')
 
 
 async def main():
@@ -118,6 +126,8 @@ async def main():
 
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
+
+    gpio.set_led_mode('white')
 
     # Start WebSocket connection (runs forever with auto-reconnect)
     try:
