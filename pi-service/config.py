@@ -15,6 +15,7 @@ CATALOG_PATH = os.getenv("CATALOG_PATH", "/home/rpi/vending-machine/kiosk-ui/pub
 # GPIO pins (BCM numbering)
 SERVO_PIN = int(os.getenv("SERVO_PIN", "17"))        # lock relay
 DOOR_SENSOR_PIN = int(os.getenv("DOOR_SENSOR_PIN", "2"))  # door sensor on GPIO2
+MOCK_HARDWARE = os.getenv("MOCK_HARDWARE", "true").lower() in ("true", "1", "yes")
 
 # Lock timing
 DEFAULT_LOCK_DURATION = int(os.getenv("LOCK_DURATION", "30"))  # seconds

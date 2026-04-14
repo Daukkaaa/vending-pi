@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 IS_PI = platform.machine().startswith('aarch64') or platform.machine().startswith('arm')
 LOCK_INVERTED = os.getenv('LOCK_INVERTED', 'false').lower() in ('true', '1', 'yes')
+MOCK_HARDWARE = os.getenv('MOCK_HARDWARE', 'true').lower() in ('true', '1', 'yes')
 DOOR_CLOSED_STATE = int(os.getenv('DOOR_CLOSED_STATE', '0'))
 WHITE_LED_PIN = int(os.getenv('WHITE_LED_PIN', '0'))
 GREEN_LED_PIN = int(os.getenv('GREEN_LED_PIN', '0'))
@@ -25,6 +26,8 @@ class GPIOController:
         self._on_door_close = None
         self._on_door_open = None
         self._gpio_ready = False
+        self._sim_door_closed = True
+        self._sim_led_mode = 'white'
 
         if LOCK_INVERTED:
             self.LOCKED = 0
@@ -34,8 +37,11 @@ class GPIOController:
             self.UNLOCKED = 0
 
     def setup(self):
-        if not IS_PI:
-            logger.warning('Not running on Pi, GPIO in simulation mode')
+        if MOCK_HARDWARE or not IS_PI:
+            logger.warning('GPIO mock mode enabled')
+            self._gpio_ready = False
+            self._sim_door_closed = True
+            self._sim_led_mode = 'white'
             return
 
         try:
@@ -82,6 +88,7 @@ class GPIOController:
 
     def set_led_mode(self, mode: str):
         logger.info(f'LED mode: {mode}')
+        self._sim_led_mode = mode
         if not self._gpio_ready:
             return
         try:
@@ -103,7 +110,8 @@ class GPIOController:
     async def open_lock(self, duration: int = 20) -> bool:
         logger.info(f'UNLOCKING for {duration}s')
         if not self._gpio_ready:
-            await asyncio.sleep(min(duration, 5))
+            self._sim_door_closed = False
+            await asyncio.sleep(0.2)
             return True
         try:
             import RPi.GPIO as GPIO
@@ -135,7 +143,7 @@ class GPIOController:
 
     def is_door_closed(self) -> bool:
         if not self._gpio_ready:
-            return True
+            return self._sim_door_closed
         try:
             import RPi.GPIO as GPIO
             return GPIO.input(self.door_sensor_pin) == DOOR_CLOSED_STATE
@@ -150,4 +158,6 @@ class GPIOController:
                 GPIO.cleanup()
             except Exception:
                 pass
+        self._sim_door_closed = True
+        self._sim_led_mode = 'white'
         logger.info('GPIO cleaned up')

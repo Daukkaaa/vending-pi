@@ -16,7 +16,7 @@ import signal
 import sys
 import os
 
-from config import MACHINE_ID, SERVO_PIN, DOOR_SENSOR_PIN, DEFAULT_LOCK_DURATION
+from config import MACHINE_ID, SERVO_PIN, DOOR_SENSOR_PIN, DEFAULT_LOCK_DURATION, MOCK_HARDWARE
 from gpio_controller import GPIOController
 from ws_client import WSClient
 from catalog_cache import write_catalog
@@ -109,7 +109,7 @@ async def main():
         sys.exit(1)
 
     logger.info(f"🚀 Pi Service starting for machine: {MACHINE_ID}")
-    logger.info(f"   Servo: GPIO{SERVO_PIN}, Door sensor: GPIO{DOOR_SENSOR_PIN}")
+    logger.info(f"   Servo: GPIO{SERVO_PIN}, Door sensor: GPIO{DOOR_SENSOR_PIN}, mock={MOCK_HARDWARE}")
 
     # Initialize GPIO
     gpio.setup()
