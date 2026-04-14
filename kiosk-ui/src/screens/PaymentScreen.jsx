@@ -1,4 +1,3 @@
-/* Payment — Marketa, 800x480 */
 import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { createOrder, createPayment, getPaymentStatus, getOrder, simulatePayment } from '../api';
@@ -53,34 +52,34 @@ export default function PaymentScreen({ lang, cart, total, onSuccess, onError, o
   const sec = timeLeft % 60;
 
   return (
-    <div style={{ height: 'calc(100vh - 44px)', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-      <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ height: 'calc(100vh - 76px)', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <button onClick={onCancel} style={{
-          background: 'none', border: '1px solid #e2e8f0', borderRadius: 8,
-          padding: '4px 10px', fontSize: 13, cursor: 'pointer', color: '#64748b',
+          background: 'none', border: '2px solid #e2e8f0', borderRadius: 12,
+          padding: '10px 16px', fontSize: 20, cursor: 'pointer', color: '#64748b', fontWeight: 700,
         }}>{t(lang, 'back')}</button>
-        <span style={{ fontSize: 15, fontWeight: 700 }}>{t(lang, 'payment')}</span>
+        <span style={{ fontSize: 28, fontWeight: 800 }}>{t(lang, 'payment')}</span>
       </div>
 
       <div style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '0 16px',
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, padding: '0 18px',
       }} className="fade-in">
         {step === 'creating' && (
           <div style={{ textAlign: 'center' }}>
-            <div className="spinner" style={{ margin: '0 auto 12px' }} />
-            <div style={{ fontSize: 14, color: '#f59e0b', fontWeight: 600 }}>{t(lang, 'creatingOrder')}</div>
+            <div className="spinner" style={{ margin: '0 auto 18px' }} />
+            <div style={{ fontSize: 24, color: '#f59e0b', fontWeight: 700 }}>{t(lang, 'creatingOrder')}</div>
           </div>
         )}
         {step === 'qr' && (
           <>
-            <div style={{ background: '#fff', borderRadius: 12, padding: 10, boxShadow: 'var(--shadow)', flexShrink: 0 }}>
-              <QRCodeSVG value={qrData} size={150} level="M" bgColor="#fff" fgColor="#1e293b" />
+            <div style={{ background: '#fff', borderRadius: 20, padding: 18, boxShadow: 'var(--shadow)', flexShrink: 0 }}>
+              <QRCodeSVG value={qrData} size={240} level="M" bgColor="#fff" fgColor="#1e293b" />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 240 }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}>{total} ₸</div>
-              <div style={{ fontSize: 13, color: '#64748b' }}>{t(lang, 'scanQR')} <strong>Kaspi.kz</strong></div>
-              <div style={{ fontSize: 13, color: '#f59e0b', fontWeight: 600 }}>⏳ {min}:{sec.toString().padStart(2, '0')}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
+              <div style={{ fontSize: 42, fontWeight: 900, color: 'var(--primary)' }}>{total} ₸</div>
+              <div style={{ fontSize: 22, color: '#64748b', lineHeight: 1.35 }}>{t(lang, 'scanQR')} <strong>Kaspi.kz</strong></div>
+              <div style={{ fontSize: 22, color: '#f59e0b', fontWeight: 700 }}>⏳ {min}:{sec.toString().padStart(2, '0')}</div>
+              <div style={{ fontSize: 18, color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
                 {cart.map(c => <div key={c.id}>{c.product_name} ×{c.qty}</div>)}
               </div>
               <button
@@ -91,8 +90,8 @@ export default function PaymentScreen({ lang, cart, total, onSuccess, onError, o
                 }}
                 style={{
                   background: simulating ? '#94a3b8' : '#16a34a',
-                  color: '#fff', border: 'none', borderRadius: 10,
-                  padding: '10px 0', fontSize: 15, fontWeight: 700,
+                  color: '#fff', border: 'none', borderRadius: 14,
+                  padding: '16px 0', fontSize: 24, fontWeight: 800,
                   cursor: simulating ? 'default' : 'pointer', width: '100%',
                 }}
               >{simulating ? t(lang, 'checking') : t(lang, 'paid')}</button>
